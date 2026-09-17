@@ -8,6 +8,10 @@ const {
   buyGenerator,
   totalProductionPerSecond,
   tick,
+  OFFLINE_RATE,
+  OFFLINE_CAP_SECONDS,
+  offlineProgress,
+  applyOfflineProgress,
   serializeState,
   deserializeState,
 } = require('../js/game-lib');
@@ -82,6 +86,35 @@ test('tick defaults to a 1-second interval', () => {
 
 test('GENERATORS exposes exactly the three v0 tiers', () => {
   expect(GENERATORS.map((generator) => generator.id)).toEqual(['worker', 'farm', 'mine']);
+});
+
+test('offlineProgress applies OFFLINE_RATE to production over elapsed time', () => {
+  const state = { gold: 0, generators: { worker: 2, farm: 0, mine: 0 } };
+  expect(offlineProgress(state, 100)).toBe(2 * 100 * OFFLINE_RATE);
+});
+
+test('offlineProgress caps elapsed time at OFFLINE_CAP_SECONDS', () => {
+  const state = { gold: 0, generators: { worker: 1, farm: 0, mine: 0 } };
+  const wayOverCap = OFFLINE_CAP_SECONDS + 100000;
+  expect(offlineProgress(state, wayOverCap)).toBe(1 * OFFLINE_CAP_SECONDS * OFFLINE_RATE);
+});
+
+test('offlineProgress earns nothing with no generators owned', () => {
+  expect(offlineProgress(createInitialState(), 3600)).toBe(0);
+});
+
+test('applyOfflineProgress adds earned gold to state and returns the earned amount', () => {
+  const state = { gold: 10, generators: { worker: 1, farm: 0, mine: 0 } };
+  const { state: next, earned } = applyOfflineProgress(state, 10);
+  expect(earned).toBe(1 * 10 * OFFLINE_RATE);
+  expect(next.gold).toBe(10 + earned);
+});
+
+test('applyOfflineProgress with zero elapsed time earns nothing', () => {
+  const state = { gold: 5, generators: { worker: 1, farm: 0, mine: 0 } };
+  const { state: next, earned } = applyOfflineProgress(state, 0);
+  expect(earned).toBe(0);
+  expect(next.gold).toBe(5);
 });
 
 test('serializeState/deserializeState round-trips gold and generators', () => {

@@ -5,10 +5,24 @@ const SAVE_KEY = 'idle-clicker-save';
 const SAVE_INTERVAL_MS = 5000;
 
 const savedJson = localStorage.getItem(SAVE_KEY);
-let state = savedJson ? deserializeState(savedJson).state : createInitialState();
+const loaded = savedJson ? deserializeState(savedJson) : null;
+let state = loaded ? loaded.state : createInitialState();
 
 function save() {
   localStorage.setItem(SAVE_KEY, serializeState(state));
+}
+
+function showOfflineSummary(earned) {
+  document.getElementById('offline-summary-text').textContent =
+    `While you were away, you earned ${Math.floor(earned)} Gold.`;
+  document.getElementById('offline-summary').hidden = false;
+}
+
+if (loaded) {
+  const elapsedSeconds = (Date.now() - loaded.lastSavedAt) / 1000;
+  const { state: nextState, earned } = applyOfflineProgress(state, elapsedSeconds);
+  state = nextState;
+  if (earned > 0) showOfflineSummary(earned);
 }
 
 function render() {
@@ -46,6 +60,9 @@ function handleGeneratorsClick(event) {
 
 document.getElementById('click-button').addEventListener('click', handleClick);
 document.getElementById('generators').addEventListener('click', handleGeneratorsClick);
+document.getElementById('dismiss-offline-summary').addEventListener('click', () => {
+  document.getElementById('offline-summary').hidden = true;
+});
 
 setInterval(() => {
   state = tick(state, 1);
