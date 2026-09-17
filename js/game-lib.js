@@ -59,6 +59,39 @@ function tick(state, elapsedSeconds = 1) {
   return { ...state, gold: state.gold + totalProductionPerSecond(state) * elapsedSeconds };
 }
 
+function serializeState(state) {
+  return JSON.stringify({
+    gold: state.gold,
+    generators: state.generators,
+    lastSavedAt: Date.now(),
+  });
+}
+
+function isValidSavePayload(candidate) {
+  if (!candidate || typeof candidate !== 'object') return false;
+  if (typeof candidate.gold !== 'number') return false;
+  if (typeof candidate.lastSavedAt !== 'number') return false;
+  if (!candidate.generators || typeof candidate.generators !== 'object') return false;
+  return GENERATORS.every(
+    (generator) => typeof candidate.generators[generator.id] === 'number'
+  );
+}
+
+// Returns { state, lastSavedAt }. Falls back to a fresh state (and the
+// current time) on missing/corrupt/malformed input rather than throwing.
+function deserializeState(json) {
+  try {
+    const parsed = JSON.parse(json);
+    if (!isValidSavePayload(parsed)) throw new Error('invalid save shape');
+    return {
+      state: { gold: parsed.gold, generators: { ...parsed.generators } },
+      lastSavedAt: parsed.lastSavedAt,
+    };
+  } catch (error) {
+    return { state: createInitialState(), lastSavedAt: Date.now() };
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     CLICK_YIELD,
@@ -70,5 +103,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buyGenerator,
     totalProductionPerSecond,
     tick,
+    serializeState,
+    deserializeState,
   };
 }

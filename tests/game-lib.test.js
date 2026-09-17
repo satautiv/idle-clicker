@@ -8,6 +8,8 @@ const {
   buyGenerator,
   totalProductionPerSecond,
   tick,
+  serializeState,
+  deserializeState,
 } = require('../js/game-lib');
 
 test('createInitialState starts at zero gold with no generators owned', () => {
@@ -80,4 +82,34 @@ test('tick defaults to a 1-second interval', () => {
 
 test('GENERATORS exposes exactly the three v0 tiers', () => {
   expect(GENERATORS.map((generator) => generator.id)).toEqual(['worker', 'farm', 'mine']);
+});
+
+test('serializeState/deserializeState round-trips gold and generators', () => {
+  const state = { gold: 42, generators: { worker: 3, farm: 1, mine: 0 } };
+  const { state: restored } = deserializeState(serializeState(state));
+  expect(restored).toEqual(state);
+});
+
+test('serializeState embeds a lastSavedAt timestamp', () => {
+  const before = Date.now();
+  const { lastSavedAt } = deserializeState(serializeState(createInitialState()));
+  expect(typeof lastSavedAt).toBe('number');
+  expect(lastSavedAt).toBeGreaterThanOrEqual(before);
+});
+
+test('deserializeState falls back to a fresh state on invalid JSON', () => {
+  const { state } = deserializeState('not json');
+  expect(state).toEqual(createInitialState());
+});
+
+test('deserializeState falls back to a fresh state on a malformed save shape', () => {
+  const { state } = deserializeState(JSON.stringify({ foo: 'bar' }));
+  expect(state).toEqual(createInitialState());
+});
+
+test('deserializeState falls back to a fresh state when a generator tier is missing', () => {
+  const { state } = deserializeState(
+    JSON.stringify({ gold: 5, generators: { worker: 1 }, lastSavedAt: Date.now() })
+  );
+  expect(state).toEqual(createInitialState());
 });

@@ -1,7 +1,15 @@
 // DOM wiring/rendering. Game math lives in game-lib.js; this file only reads
 // state and updates the page.
 
-let state = createInitialState();
+const SAVE_KEY = 'idle-clicker-save';
+const SAVE_INTERVAL_MS = 5000;
+
+const savedJson = localStorage.getItem(SAVE_KEY);
+let state = savedJson ? deserializeState(savedJson).state : createInitialState();
+
+function save() {
+  localStorage.setItem(SAVE_KEY, serializeState(state));
+}
 
 function render() {
   document.getElementById('gold-display').textContent = `Gold: ${state.gold}`;
@@ -43,5 +51,8 @@ setInterval(() => {
   state = tick(state, 1);
   render();
 }, 1000);
+
+setInterval(save, SAVE_INTERVAL_MS);
+window.addEventListener('beforeunload', save);
 
 render();
