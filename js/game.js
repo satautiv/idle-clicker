@@ -28,6 +28,7 @@ if (loaded) {
 function render() {
   document.getElementById('gold-display').textContent = `Gold: ${state.gold}`;
   renderGenerators();
+  renderPrestige();
 }
 
 function renderGenerators() {
@@ -46,8 +47,30 @@ function renderGenerators() {
   });
 }
 
+function renderPrestige() {
+  const payout = prestigeShardsForLifetimeGold(state.lifetimeGold);
+  document.getElementById('prestige-shards').textContent =
+    `Prestige Shards: ${state.prestigeShards} (+${Math.round((prestigeMultiplier(state) - 1) * 100)}% production)`;
+  document.getElementById('prestige-payout').textContent =
+    `Prestige now for +${payout} Shard${payout === 1 ? '' : 's'}`;
+  document.getElementById('prestige-button').disabled = !canPrestige(state);
+}
+
 function handleClick() {
   state = click(state);
+  render();
+}
+
+function handlePrestigeClick() {
+  if (!canPrestige(state)) return;
+  const payout = prestigeShardsForLifetimeGold(state.lifetimeGold);
+  const confirmed = window.confirm(
+    `Prestige now? This resets your Gold and generators in exchange for ` +
+      `${payout} Prestige Shard${payout === 1 ? '' : 's'} ` +
+      `(permanent +${payout * 2}% production). This cannot be undone.`
+  );
+  if (!confirmed) return;
+  state = prestige(state);
   render();
 }
 
@@ -63,6 +86,7 @@ document.getElementById('generators').addEventListener('click', handleGenerators
 document.getElementById('dismiss-offline-summary').addEventListener('click', () => {
   document.getElementById('offline-summary').hidden = true;
 });
+document.getElementById('prestige-button').addEventListener('click', handlePrestigeClick);
 
 setInterval(() => {
   state = tick(state, 1);
