@@ -18,6 +18,7 @@ const {
   prestigeShardsForLifetimeGold,
   canPrestige,
   prestige,
+  formatNumber,
   serializeState,
   deserializeState,
 } = require('../js/game-lib');
@@ -180,6 +181,29 @@ test('prestige resets gold/lifetimeGold/generators and adds earned shards', () =
     generators: { worker: 0, farm: 0, mine: 0 },
     prestigeShards: 3 + 2,
   });
+});
+
+test('formatNumber returns raw integers below 1000', () => {
+  expect(formatNumber(0)).toBe('0');
+  expect(formatNumber(999)).toBe('999');
+});
+
+test('formatNumber applies suffixes at each tier threshold', () => {
+  expect(formatNumber(1000)).toBe('1.00K');
+  expect(formatNumber(1500000)).toBe('1.50M');
+  expect(formatNumber(2500000000)).toBe('2.50B');
+  expect(formatNumber(3200000000000)).toBe('3.20T');
+  expect(formatNumber(4100000000000000)).toBe('4.10Qa');
+  expect(formatNumber(5300000000000000000)).toBe('5.30Qi');
+});
+
+test('formatNumber switches to scientific notation at 1e21', () => {
+  expect(formatNumber(1e21)).toBe('1.00e21');
+  expect(formatNumber(1.23e21)).toBe('1.23e21');
+});
+
+test('formatNumber preserves a leading minus sign', () => {
+  expect(formatNumber(-1500)).toBe('-1.50K');
 });
 
 test('serializeState/deserializeState round-trips the full state shape', () => {

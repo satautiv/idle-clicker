@@ -14,7 +14,7 @@ function save() {
 
 function showOfflineSummary(earned) {
   document.getElementById('offline-summary-text').textContent =
-    `While you were away, you earned ${Math.floor(earned)} Gold.`;
+    `While you were away, you earned ${formatNumber(earned)} Gold.`;
   document.getElementById('offline-summary').hidden = false;
 }
 
@@ -26,7 +26,7 @@ if (loaded) {
 }
 
 function render() {
-  document.getElementById('gold-display').textContent = `Gold: ${state.gold}`;
+  document.getElementById('gold-display').textContent = `Gold: ${formatNumber(state.gold)}`;
   renderGenerators();
   renderPrestige();
 }
@@ -40,8 +40,8 @@ function renderGenerators() {
     const row = document.createElement('div');
     row.className = 'generator-row';
     row.innerHTML = `
-      <span>${generator.name} (${owned} owned, ${generator.production}/s each)</span>
-      <button type="button" data-generator-id="${generator.id}"${state.gold < cost ? ' disabled' : ''}>Buy for ${cost}</button>
+      <span>${generator.name} (${formatNumber(owned)} owned, ${generator.production}/s each)</span>
+      <button type="button" data-generator-id="${generator.id}"${state.gold < cost ? ' disabled' : ''}>Buy for ${formatNumber(cost)}</button>
     `;
     container.appendChild(row);
   });
@@ -50,15 +50,29 @@ function renderGenerators() {
 function renderPrestige() {
   const payout = prestigeShardsForLifetimeGold(state.lifetimeGold);
   document.getElementById('prestige-shards').textContent =
-    `Prestige Shards: ${state.prestigeShards} (+${Math.round((prestigeMultiplier(state) - 1) * 100)}% production)`;
+    `Prestige Shards: ${formatNumber(state.prestigeShards)} (+${Math.round((prestigeMultiplier(state) - 1) * 100)}% production)`;
   document.getElementById('prestige-payout').textContent =
-    `Prestige now for +${payout} Shard${payout === 1 ? '' : 's'}`;
+    `Prestige now for +${formatNumber(payout)} Shard${payout === 1 ? '' : 's'}`;
   document.getElementById('prestige-button').disabled = !canPrestige(state);
+}
+
+function spawnClickFeedback() {
+  const button = document.getElementById('click-button');
+  button.classList.remove('pulse');
+  void button.offsetWidth; // restart the animation even on rapid clicks
+  button.classList.add('pulse');
+
+  const floater = document.createElement('span');
+  floater.className = 'floating-text';
+  floater.textContent = `+${formatNumber(CLICK_YIELD)}`;
+  document.getElementById('click-button-wrap').appendChild(floater);
+  floater.addEventListener('animationend', () => floater.remove());
 }
 
 function handleClick() {
   state = click(state);
   render();
+  spawnClickFeedback();
 }
 
 function handlePrestigeClick() {

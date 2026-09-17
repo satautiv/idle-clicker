@@ -119,6 +119,28 @@ function prestige(state) {
   };
 }
 
+// Suffix cutoffs per GAME_DESIGN.md, largest first.
+const NUMBER_SUFFIX_TIERS = [
+  { threshold: 1e18, suffix: 'Qi' },
+  { threshold: 1e15, suffix: 'Qa' },
+  { threshold: 1e12, suffix: 'T' },
+  { threshold: 1e9, suffix: 'B' },
+  { threshold: 1e6, suffix: 'M' },
+  { threshold: 1e3, suffix: 'K' },
+];
+const NUMBER_SCIENTIFIC_THRESHOLD = 1e21;
+
+function formatNumber(n) {
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (abs < 1000) return sign + Math.floor(abs).toString();
+  if (abs >= NUMBER_SCIENTIFIC_THRESHOLD) {
+    return sign + abs.toExponential(2).replace('e+', 'e');
+  }
+  const tier = NUMBER_SUFFIX_TIERS.find((candidate) => abs >= candidate.threshold);
+  return sign + (abs / tier.threshold).toFixed(2) + tier.suffix;
+}
+
 function serializeState(state) {
   return JSON.stringify({
     gold: state.gold,
@@ -182,6 +204,7 @@ if (typeof module !== 'undefined' && module.exports) {
     prestigeShardsForLifetimeGold,
     canPrestige,
     prestige,
+    formatNumber,
     serializeState,
     deserializeState,
   };
