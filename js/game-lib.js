@@ -10,16 +10,25 @@ const GENERATORS = [
   { id: 'mine', name: 'Mine', baseCost: 1100, growthRate: 1.15, production: 47 },
 ];
 
+// Prestige tuning per GAME_DESIGN.md: shards earned from lifetime gold
+// (reset each prestige), each giving a permanent production multiplier.
+const PRESTIGE_SHARD_DIVISOR = 1_000_000;
+const PRESTIGE_MULTIPLIER_PER_SHARD = 0.02;
+
 function createInitialState() {
   const generators = {};
   GENERATORS.forEach((generator) => {
     generators[generator.id] = 0;
   });
-  return { gold: 0, generators };
+  return { gold: 0, lifetimeGold: 0, generators, prestigeShards: 0 };
 }
 
 function click(state) {
-  return { ...state, gold: state.gold + CLICK_YIELD };
+  return {
+    ...state,
+    gold: state.gold + CLICK_YIELD,
+    lifetimeGold: state.lifetimeGold + CLICK_YIELD,
+  };
 }
 
 function findGenerator(generatorId) {
@@ -48,15 +57,26 @@ function buyGenerator(state, generatorId) {
   };
 }
 
+function prestigeMultiplier(state) {
+  return 1 + PRESTIGE_MULTIPLIER_PER_SHARD * state.prestigeShards;
+}
+
+// Prestige multiplier applies to generator production only, not clicks.
 function totalProductionPerSecond(state) {
-  return GENERATORS.reduce(
+  const baseProduction = GENERATORS.reduce(
     (sum, generator) => sum + generator.production * state.generators[generator.id],
     0
   );
+  return baseProduction * prestigeMultiplier(state);
 }
 
 function tick(state, elapsedSeconds = 1) {
-  return { ...state, gold: state.gold + totalProductionPerSecond(state) * elapsedSeconds };
+  const earned = totalProductionPerSecond(state) * elapsedSeconds;
+  return {
+    ...state,
+    gold: state.gold + earned,
+    lifetimeGold: state.lifetimeGold + earned,
+  };
 }
 
 // Offline-progress tuning per GAME_DESIGN.md: half the normal production
@@ -71,13 +91,40 @@ function offlineProgress(state, elapsedSeconds) {
 
 function applyOfflineProgress(state, elapsedSeconds) {
   const earned = offlineProgress(state, elapsedSeconds);
-  return { state: { ...state, gold: state.gold + earned }, earned };
+  return {
+    state: {
+      ...state,
+      gold: state.gold + earned,
+      lifetimeGold: state.lifetimeGold + earned,
+    },
+    earned,
+  };
+}
+
+function prestigeShardsForLifetimeGold(lifetimeGold) {
+  return Math.floor(Math.sqrt(lifetimeGold / PRESTIGE_SHARD_DIVISOR));
+}
+
+// Only worth doing once it would pay out at least one shard.
+function canPrestige(state) {
+  return prestigeShardsForLifetimeGold(state.lifetimeGold) >= 1;
+}
+
+function prestige(state) {
+  if (!canPrestige(state)) return state;
+  const earnedShards = prestigeShardsForLifetimeGold(state.lifetimeGold);
+  return {
+    ...createInitialState(),
+    prestigeShards: state.prestigeShards + earnedShards,
+  };
 }
 
 function serializeState(state) {
   return JSON.stringify({
     gold: state.gold,
+    lifetimeGold: state.lifetimeGold,
     generators: state.generators,
+    prestigeShards: state.prestigeShards,
     lastSavedAt: Date.now(),
   });
 }
@@ -85,6 +132,8 @@ function serializeState(state) {
 function isValidSavePayload(candidate) {
   if (!candidate || typeof candidate !== 'object') return false;
   if (typeof candidate.gold !== 'number') return false;
+  if (typeof candidate.lifetimeGold !== 'number') return false;
+  if (typeof candidate.prestigeShards !== 'number') return false;
   if (typeof candidate.lastSavedAt !== 'number') return false;
   if (!candidate.generators || typeof candidate.generators !== 'object') return false;
   return GENERATORS.every(
@@ -99,7 +148,12 @@ function deserializeState(json) {
     const parsed = JSON.parse(json);
     if (!isValidSavePayload(parsed)) throw new Error('invalid save shape');
     return {
-      state: { gold: parsed.gold, generators: { ...parsed.generators } },
+      state: {
+        gold: parsed.gold,
+        lifetimeGold: parsed.lifetimeGold,
+        generators: { ...parsed.generators },
+        prestigeShards: parsed.prestigeShards,
+      },
       lastSavedAt: parsed.lastSavedAt,
     };
   } catch (error) {
@@ -111,17 +165,23 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     CLICK_YIELD,
     GENERATORS,
+    PRESTIGE_SHARD_DIVISOR,
+    PRESTIGE_MULTIPLIER_PER_SHARD,
     createInitialState,
     click,
     generatorCost,
     canAffordGenerator,
     buyGenerator,
+    prestigeMultiplier,
     totalProductionPerSecond,
     tick,
     OFFLINE_RATE,
     OFFLINE_CAP_SECONDS,
     offlineProgress,
     applyOfflineProgress,
+    prestigeShardsForLifetimeGold,
+    canPrestige,
+    prestige,
     serializeState,
     deserializeState,
   };
