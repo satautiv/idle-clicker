@@ -59,6 +59,21 @@ function tick(state, elapsedSeconds = 1) {
   return { ...state, gold: state.gold + totalProductionPerSecond(state) * elapsedSeconds };
 }
 
+// Offline-progress tuning per GAME_DESIGN.md: half the normal production
+// rate, capped at 8 hours of accumulation.
+const OFFLINE_RATE = 0.5;
+const OFFLINE_CAP_SECONDS = 8 * 60 * 60;
+
+function offlineProgress(state, elapsedSeconds) {
+  const cappedSeconds = Math.min(elapsedSeconds, OFFLINE_CAP_SECONDS);
+  return totalProductionPerSecond(state) * cappedSeconds * OFFLINE_RATE;
+}
+
+function applyOfflineProgress(state, elapsedSeconds) {
+  const earned = offlineProgress(state, elapsedSeconds);
+  return { state: { ...state, gold: state.gold + earned }, earned };
+}
+
 function serializeState(state) {
   return JSON.stringify({
     gold: state.gold,
@@ -103,6 +118,10 @@ if (typeof module !== 'undefined' && module.exports) {
     buyGenerator,
     totalProductionPerSecond,
     tick,
+    OFFLINE_RATE,
+    OFFLINE_CAP_SECONDS,
+    offlineProgress,
+    applyOfflineProgress,
     serializeState,
     deserializeState,
   };
