@@ -1,0 +1,15 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #0f1115;
+  color: #e8e8e8;
+}
+
+header {
+  padding: 1rem;
+  text-align: center;
+}
