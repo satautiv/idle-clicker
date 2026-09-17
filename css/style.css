@@ -13,3 +13,101 @@ header {
   padding: 1rem;
   text-align: center;
 }
+
+#game {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+#gold-display {
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.click-wrap {
+  position: relative;
+  display: block;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+#click-button {
+  font-size: 1.25rem;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+}
+
+#click-button.pulse {
+  animation: click-pulse 0.15s ease-out;
+}
+
+@keyframes click-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.floating-text {
+  position: absolute;
+  left: 50%;
+  top: -0.5rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  font-weight: bold;
+  color: #ffd166;
+  animation: float-up 0.8s ease-out forwards;
+}
+
+@keyframes float-up {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to { opacity: 0; transform: translate(-50%, -40px); }
+}
+
+#offline-summary {
+  background: #1c2029;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+#offline-summary:not([hidden]) {
+  display: flex;
+}
+
+.generator-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #2a2d35;
+  flex-wrap: wrap;
+}
+
+#prestige {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2a2d35;
+  text-align: center;
+}
+
+button {
+  cursor: pointer;
+}
+
+@media (max-width: 400px) {
+  #game {
+    padding: 0.75rem;
+  }
+
+  .generator-row button,
+  #prestige-button {
+    width: 100%;
+  }
+}
