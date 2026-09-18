@@ -38,8 +38,12 @@ jobs:
         run: |
           mkdir -p dist
           cp index.html dist/
+          cp manifest.json dist/
+          cp sw.js dist/
           cp -r css dist/
           cp -r js dist/
+          cp -r icons dist/
+          sed -i "s/const CACHE_VERSION = 'dev';/const CACHE_VERSION = '${{ github.sha }}';/" dist/sw.js
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
